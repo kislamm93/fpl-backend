@@ -1,0 +1,593 @@
+{
+	"info": {
+		"_postman_id": "e8453b0c-8f7a-4a93-a9ce-7e143ba3e1d1",
+		"name": "FPL API Collection",
+		"description": "A collection of endpoints for the Fantasy Premier League API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Root Endpoints",
+			"item": [
+				{
+					"name": "Welcome",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							]
+						},
+						"description": "Welcome message and basic API information"
+					},
+					"response": []
+				},
+				{
+					"name": "Heartbeat",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/heartbeat",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"heartbeat"
+							]
+						},
+						"description": "Check if the API is alive and get current timestamp"
+					},
+					"response": []
+				},
+				{
+					"name": "Bootstrap Static",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/bootstrap-static",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"bootstrap-static"
+							]
+						},
+						"description": "Get all static data for the current FPL season"
+					},
+					"response": []
+				}
+			],
+			"description": "Basic API endpoints"
+		},
+		{
+			"name": "Manager Endpoints",
+			"item": [
+				{
+					"name": "Get Manager Details",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/entry/{{manager_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"entry",
+								"{{manager_id}}"
+							]
+						},
+						"description": "Retrieve detailed information about a specific FPL manager"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Manager Picks",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/entry/{{manager_id}}/event/{{gameweek}}/picks",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"entry",
+								"{{manager_id}}",
+								"event",
+								"{{gameweek}}",
+								"picks"
+							]
+						},
+						"description": "Retrieve the team picks for a specific manager in a given gameweek"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Manager History",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/entry/{{manager_id}}/history",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"entry",
+								"{{manager_id}}",
+								"history"
+							]
+						},
+						"description": "Retrieve the complete history of a manager's performance"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Manager Team Stats",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/entry/my-team/{{manager_id}}/stats",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"entry",
+								"my-team",
+								"{{manager_id}}",
+								"stats"
+							]
+						},
+						"description": "Retrieve current team statistics for a manager including player performance"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints related to FPL managers"
+		},
+		{
+			"name": "League Endpoints",
+			"item": [
+				{
+					"name": "Get League Standings",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/leagues-classic/{{league_id}}/standings?page_new_entries=1&page_standings=1&phase=1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"leagues-classic",
+								"{{league_id}}",
+								"standings"
+							],
+							"query": [
+								{
+									"key": "page_new_entries",
+									"value": "1",
+									"description": "Page number for new entries"
+								},
+								{
+									"key": "page_standings",
+									"value": "1",
+									"description": "Page number for standings"
+								},
+								{
+									"key": "phase",
+									"value": "1",
+									"description": "League phase"
+								}
+							]
+						},
+						"description": "Retrieve the current standings for a classic league"
+					},
+					"response": []
+				},
+				{
+					"name": "Get League Participants",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/leagues-classic/{{league_id}}/participants",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"leagues-classic",
+								"{{league_id}}",
+								"participants"
+							]
+						},
+						"description": "Retrieve detailed information about all participants in a league including their history and chips"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints related to FPL leagues"
+		},
+		{
+			"name": "Fixtures Endpoints",
+			"item": [
+				{
+					"name": "Get All Fixtures",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/fixtures",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"fixtures"
+							]
+						},
+						"description": "Retrieve all fixtures for the current season"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Gameweek Fixtures",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/fixtures?event={{gameweek}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"fixtures"
+							],
+							"query": [
+								{
+									"key": "event",
+									"value": "{{gameweek}}",
+									"description": "Gameweek number"
+								}
+							]
+						},
+						"description": "Retrieve fixtures for a specific gameweek"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints related to match fixtures"
+		},
+		{
+			"name": "Teams Endpoints",
+			"item": [
+				{
+					"name": "Get All Teams",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/teams",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"teams"
+							]
+						},
+						"description": "Retrieve all Premier League teams"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Team Details",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/teams/{{team_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"teams",
+								"{{team_id}}"
+							]
+						},
+						"description": "Retrieve detailed information about a specific team"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Team Fixtures",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/teams/{{team_id}}/fixtures",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"teams",
+								"{{team_id}}",
+								"fixtures"
+							]
+						},
+						"description": "Retrieve all fixtures for a specific team"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints related to Premier League teams"
+		},
+		{
+			"name": "Players Endpoints",
+			"item": [
+				{
+					"name": "Get All Players",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/players",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"players"
+							]
+						},
+						"description": "Retrieve all players in the game"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Player Details",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/players/{{player_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"players",
+								"{{player_id}}"
+							]
+						},
+						"description": "Retrieve detailed information about a specific player"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Player History",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/players/{{player_id}}/history",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"players",
+								"{{player_id}}",
+								"history"
+							]
+						},
+						"description": "Retrieve historical performance data for a specific player"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints related to FPL players"
+		},
+		{
+			"name": "Events (Gameweeks) Endpoints",
+			"item": [
+				{
+					"name": "Get All Gameweeks",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/events",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"events"
+							]
+						},
+						"description": "Retrieve information about all gameweeks in the current season"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Specific Gameweek",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/events/{{event}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"events",
+								"{{event}}"
+							]
+						},
+						"description": "Retrieve detailed information about a specific gameweek"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Live Gameweek Data",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/events/{{event}}/live",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"events",
+								"{{event}}",
+								"live"
+							]
+						},
+						"description": "Retrieve live data for a specific gameweek"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints related to gameweeks (events)"
+		},
+		{
+			"name": "Odds Endpoints",
+			"item": [
+				{
+					"name": "Get Upcoming Odds",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/odds/upcoming",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"odds",
+								"upcoming"
+							]
+						},
+						"description": "Fetch upcoming odds for Premier League matches"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Event Odds",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/odds/{{betting_event_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"odds",
+								"{{betting_event_id}}"
+							]
+						},
+						"description": "Fetch odds for a specific event by ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Clean Sheets Odds",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/odds/{{betting_event_id}}/clean-sheets",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"odds",
+								"{{betting_event_id}}",
+								"clean-sheets"
+							]
+						},
+						"description": "Fetch Clean Sheets odds for a specific event"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints related to betting odds"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string",
+			"description": "Base URL for the FPL API"
+		},
+		{
+			"key": "manager_id",
+			"value": "654925",
+			"type": "string",
+			"description": "Example manager ID for testing"
+		},
+		{
+			"key": "gameweek",
+			"value": "29",
+			"type": "string",
+			"description": "Example gameweek number for testing"
+		},
+		{
+			"key": "league_id",
+			"value": "497674",
+			"type": "string",
+			"description": "Example league ID for testing"
+		},
+		{
+			"key": "team_id",
+			"value": "1",
+			"type": "string",
+			"description": "Example team ID for testing"
+		},
+		{
+			"key": "player_id",
+			"value": "123",
+			"type": "string",
+			"description": "Example player ID for testing"
+		},
+		{
+			"key": "event",
+			"value": "29",
+			"type": "string",
+			"description": "Example event (gameweek) ID for testing"
+		},
+		{
+			"key": "betting_event_id",
+			"value": "a6151a5362fb6365b776880f17a142cc",
+			"type": "string",
+			"description": "Example betting event ID for testing"
+		}
+	]
+} 
