@@ -118,19 +118,21 @@ async def get_team_stats(
         
         # Get live data for the event
         live_data = FPLService.get_event_live(event_id)
-        
-        # Combine picks with live data to get team stats
+        live_by_id = {e["id"]: e for e in live_data["elements"]}
+
+        # Bootstrap gives player identity (name, team) + season aggregates,
+        # which the live event data does not carry.
+        bootstrap = FPLService.get_bootstrap_static()
+        elements_by_id = {e["id"]: e for e in bootstrap.get("elements", [])}
+        team_short_by_id = {t["id"]: t["short_name"] for t in bootstrap.get("teams", [])}
+
+        # Combine picks with live + bootstrap data to get enriched team stats
         team_stats = []
         for pick in picks["picks"]:
             player_id = pick["element"]
-            player_data = None
-            
-            # Find player data in live data
-            for element in live_data["elements"]:
-                if element["id"] == player_id:
-                    player_data = element
-                    break
-            
+            player_data = live_by_id.get(player_id)
+            element = elements_by_id.get(player_id, {})
+
             if player_data:
                 team_stats.append({
                     "id": player_id,
@@ -138,7 +140,13 @@ async def get_team_stats(
                     "is_captain": pick["is_captain"],
                     "is_vice_captain": pick["is_vice_captain"],
                     "multiplier": pick["multiplier"],
-                    "stats": player_data["stats"]
+                    "stats": player_data["stats"],
+                    "web_name": element.get("web_name", f"Player {player_id}"),
+                    "team": element.get("team"),
+                    "team_short_name": team_short_by_id.get(element.get("team"), ""),
+                    "team_code": element.get("team_code"),
+                    "points_per_game": element.get("points_per_game", ""),
+                    "selected_by_percent": element.get("selected_by_percent", ""),
                 })
         
         return {

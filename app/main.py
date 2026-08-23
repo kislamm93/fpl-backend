@@ -4,14 +4,15 @@ from fastapi.responses import JSONResponse
 import logging
 import time
 from app.routes import (
-    root, 
-    players, 
-    teams, 
-    events, 
-    fixtures, 
-    entry, 
-    league, 
-    odds
+    root,
+    players,
+    teams,
+    events,
+    fixtures,
+    entry,
+    league,
+    odds,
+    ticker,
 )
 
 # Configure logging
@@ -44,6 +45,8 @@ app.include_router(fixtures.router)
 app.include_router(entry.router)
 app.include_router(league.router)
 app.include_router(odds.router)
+app.include_router(ticker.router)
+
 
 # Middleware for request logging
 @app.middleware("http")
