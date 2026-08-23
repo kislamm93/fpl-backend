@@ -22,8 +22,9 @@ async def root():
         "docs": "/docs"
     }
 
-@router.get(
+@router.api_route(
     "/health",
+    methods=["GET", "HEAD"],  # HEAD so uptime monitors (e.g. UptimeRobot) don't 405
     summary="Health Check",
     description="Check if the API is healthy and all required services are available",
     response_description="Health status of the API"
