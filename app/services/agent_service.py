@@ -57,10 +57,15 @@ def _text_of(event: dict) -> str:
 
 
 async def _ensure_session(client: httpx.AsyncClient, base: str, user_id: str, session_id: str) -> None:
-    """Create the ADK session if it doesn't exist. A 400 means it already does."""
+    """Create the ADK session if it doesn't exist.
+
+    A follow-up message reuses the same session_id, so the create call comes back
+    "already exists" — ADK signals that with 409 (and some builds 400). Both mean
+    the session is there, which is all we need, so treat them as success.
+    """
     url = f"{base}/apps/{APP_NAME}/users/{user_id}/sessions/{session_id}"
     resp = await client.post(url, json={})
-    if resp.status_code not in (200, 400):
+    if resp.status_code not in (200, 400, 409):
         resp.raise_for_status()
 
 
