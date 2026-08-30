@@ -13,6 +13,7 @@ from app.routes import (
     league,
     odds,
     ticker,
+    agent,
 )
 
 # Configure logging
@@ -46,6 +47,7 @@ app.include_router(entry.router)
 app.include_router(league.router)
 app.include_router(odds.router)
 app.include_router(ticker.router)
+app.include_router(agent.router)
 
 
 # Middleware for request logging
