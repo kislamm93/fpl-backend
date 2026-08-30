@@ -1,29 +1,50 @@
-import requests
 import logging
 from typing import Dict, List, Any, Optional
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+import requests
+
+from app.services import cache
+
+logger = logging.getLogger(__name__)
+
+# How long cached FPL payloads stay fresh (seconds).
+#   bootstrap-static: players/teams/events + slowly-drifting stats -> ~10 min
+#   fixtures:         schedule rarely changes                      -> ~1 hr
+BOOTSTRAP_TTL = 600
+FIXTURES_TTL = 3600
+
+# One pooled session for all FPL calls: reuses TLS connections (keep-alive)
+# instead of a fresh handshake per request.
+_session = requests.Session()
 
 class FPLService:
     """Service class for interacting with the Fantasy Premier League API."""
-    
+
     BASE_URL = "https://fantasy.premierleague.com/api"
-    
+
+    @classmethod
+    def _fetch_bootstrap_static(cls) -> Dict[str, Any]:
+        """Actually hit the FPL API for bootstrap-static (uncached)."""
+        url = f"{cls.BASE_URL}/bootstrap-static/"
+        response = _session.get(url)
+        if response.status_code != 200:
+            logger.error(f"Failed to get bootstrap-static data. Status: {response.status_code}")
+            return {}
+        return response.json()
+
     @classmethod
     def get_bootstrap_static(cls) -> Dict[str, Any]:
         """
-        Get bootstrap-static data from the FPL API.
-        
+        Get bootstrap-static data from the FPL API, cached for BOOTSTRAP_TTL.
+
+        This is the hot path — it's called by nearly every route (players, teams,
+        events, current gameweek). Caching it turns repeated ~1.5 MB refetches
+        into instant memory hits.
+
         Returns:
             Dict: Bootstrap static data
         """
-        url = f"{cls.BASE_URL}/bootstrap-static/"
-        response = requests.get(url)
-        if response.status_code != 200:
-            logging.error(f"Failed to get bootstrap-static data. Status: {response.status_code}")
-            return {}
-        return response.json()
+        return cache.get_or_set("bootstrap-static", BOOTSTRAP_TTL, cls._fetch_bootstrap_static)
     
     @classmethod
     def get_current_event(cls) -> Dict[str, Any]:
@@ -93,10 +114,10 @@ class FPLService:
             Exception: If API request fails
         """
         url = f"{cls.BASE_URL}/event/{event_id}/live/"
-        response = requests.get(url)
+        response = _session.get(url)
         
         if response.status_code != 200:
-            logging.error(f"Failed to get event live data. Status: {response.status_code}")
+            logger.error(f"Failed to get event live data. Status: {response.status_code}")
             raise Exception(f"Failed to get live data for gameweek {event_id}")
             
         return response.json()
@@ -112,13 +133,18 @@ class FPLService:
         Raises:
             Exception: If API request fails
         """
+        return cache.get_or_set("fixtures", FIXTURES_TTL, cls._fetch_fixtures)
+
+    @classmethod
+    def _fetch_fixtures(cls) -> List[Dict[str, Any]]:
+        """Actually hit the FPL API for fixtures (uncached)."""
         url = f"{cls.BASE_URL}/fixtures/"
-        response = requests.get(url)
-        
+        response = _session.get(url)
+
         if response.status_code != 200:
-            logging.error(f"Failed to get fixtures. Status: {response.status_code}")
+            logger.error(f"Failed to get fixtures. Status: {response.status_code}")
             raise Exception("Failed to get fixtures")
-            
+
         return response.json()
     
     @classmethod
@@ -175,10 +201,10 @@ class FPLService:
             Exception: If API request fails
         """
         url = f"{cls.BASE_URL}/entry/{manager_id}/"
-        response = requests.get(url)
+        response = _session.get(url)
         
         if response.status_code != 200:
-            logging.error(f"Failed to get manager data. Status: {response.status_code}")
+            logger.error(f"Failed to get manager data. Status: {response.status_code}")
             raise Exception(f"Failed to get data for manager {manager_id}. Status: {response.status_code}")
             
         return response.json()
@@ -199,10 +225,10 @@ class FPLService:
             Exception: If API request fails
         """
         url = f"{cls.BASE_URL}/entry/{manager_id}/event/{event_id}/picks/"
-        response = requests.get(url)
+        response = _session.get(url)
         
         if response.status_code != 200:
-            logging.error(f"Failed to get manager picks. Status: {response.status_code}")
+            logger.error(f"Failed to get manager picks. Status: {response.status_code}")
             raise Exception(f"Failed to get picks for manager {manager_id} in gameweek {event_id}")
             
         return response.json()
@@ -222,10 +248,10 @@ class FPLService:
             Exception: If API request fails
         """
         url = f"{cls.BASE_URL}/entry/{manager_id}/history/"
-        response = requests.get(url)
+        response = _session.get(url)
         
         if response.status_code != 200:
-            logging.error(f"Failed to get manager history. Status: {response.status_code}")
+            logger.error(f"Failed to get manager history. Status: {response.status_code}")
             raise Exception(f"Failed to get history for manager {manager_id}")
             
         return response.json()
@@ -253,10 +279,10 @@ class FPLService:
             "page_new_entries": page_new_entries,
             "phase": phase
         }
-        response = requests.get(url, params=params)
+        response = _session.get(url, params=params)
         
         if response.status_code != 200:
-            logging.error(f"Failed to get league standings. Status: {response.status_code}")
+            logger.error(f"Failed to get league standings. Status: {response.status_code}")
             raise Exception(f"Failed to get standings for league {league_id}")
             
         return response.json()
@@ -276,10 +302,10 @@ class FPLService:
             Exception: If API request fails
         """
         url = f"{cls.BASE_URL}/element-summary/{player_id}/"
-        response = requests.get(url)
+        response = _session.get(url)
         
         if response.status_code != 200:
-            logging.error(f"Failed to get player summary. Status: {response.status_code}")
+            logger.error(f"Failed to get player summary. Status: {response.status_code}")
             raise Exception(f"Failed to get summary for player {player_id}")
             
         return response.json()

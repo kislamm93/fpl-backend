@@ -23,11 +23,20 @@ else
   exit 1
 fi
 # Free port 8000 if a previous run left an orphaned uvicorn behind.
-STALE_PID="$(lsof -nP -tiTCP:8000 -sTCP:LISTEN 2>/dev/null || true)"
-if [ -n "$STALE_PID" ]; then
-  echo "[backend]  port 8000 busy (pid $STALE_PID) — killing it"
-  kill "$STALE_PID" 2>/dev/null || true
+# `--reload` spawns a reloader parent + worker child; a plain SIGTERM to one of
+# them is often ignored, so kill EVERY pid on the port and escalate to -9.
+STALE_PIDS="$(lsof -nP -tiTCP:8000 -sTCP:LISTEN 2>/dev/null || true)"
+if [ -n "$STALE_PIDS" ]; then
+  echo "[backend]  port 8000 busy (pids: $STALE_PIDS) — killing"
+  kill $STALE_PIDS 2>/dev/null || true
   sleep 1
+  # Anything still holding the port gets SIGKILL.
+  STILL="$(lsof -nP -tiTCP:8000 -sTCP:LISTEN 2>/dev/null || true)"
+  if [ -n "$STILL" ]; then
+    echo "[backend]  still busy (pids: $STILL) — SIGKILL"
+    kill -9 $STILL 2>/dev/null || true
+    sleep 1
+  fi
 fi
 
 echo "[backend]  starting uvicorn on :8000"
