@@ -1,17 +1,47 @@
+from datetime import datetime
 from fastapi import APIRouter, HTTPException
 from app.services.odds_api_service import (
-    get_upcoming_matches, 
+    get_upcoming_matches,
     get_event_btts_odds,
-    calculate_combined_market_odds, 
+    calculate_combined_market_odds,
     convert_odds_to_probability,
     normalize_probabilities,
     extract_btts_odds,
     calculate_clean_sheet_probabilities
 )
+from app.services.fpl_service import FPLService
 import logging
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+
+
+def _parse_iso(value: str) -> datetime:
+    """Parse an FPL/Odds-API ISO timestamp (trailing 'Z') into an aware datetime."""
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
+def _upcoming_gameweek_window():
+    """(start, end) datetimes bounding the next gameweek's matches.
+
+    The Odds API lists several gameweeks ahead; FPL's deadlines tell us where one
+    gameweek ends and the next begins. A GW's matches fall between its own
+    deadline and the following GW's deadline, so that pair is our filter window.
+    `end` is None for the final gameweek (keep everything after `start`).
+    Returns (None, None) if FPL data is unavailable, so callers fall back to
+    showing all matches rather than an empty page.
+    """
+    events = FPLService.get_events()
+    if not events:
+        return None, None
+    events = sorted(events, key=lambda e: e["id"])
+    target = next((e for e in events if not e.get("finished")), None)
+    if not target:
+        return None, None
+    start = _parse_iso(target["deadline_time"])
+    following = next((e for e in events if e["id"] == target["id"] + 1), None)
+    end = _parse_iso(following["deadline_time"]) if following else None
+    return start, end
 
 # Create router
 router = APIRouter(
@@ -39,13 +69,32 @@ async def get_upcoming_odds():
     try:
         # Get upcoming matches from The Odds API
         matches = get_upcoming_matches()
-        
+
+        # Keep only the next gameweek's matches (the Odds API returns several
+        # gameweeks ahead). Falls back to all matches if the window can't be
+        # determined or a timestamp is missing/unparseable.
+        start, end = _upcoming_gameweek_window()
+        if start is not None:
+            def _in_window(match) -> bool:
+                ct = match.get("commence_time")
+                if not ct:
+                    return False
+                try:
+                    commence = _parse_iso(ct)
+                except ValueError:
+                    return False
+                if commence < start:
+                    return False
+                return end is None or commence < end
+
+            matches = [m for m in matches if _in_window(m)]
+
         # Process the response to include combined market odds
         processed_matches = []
         for match in matches:
             # Calculate combined market odds
             combined_market_odds = calculate_combined_market_odds(match.get("bookmakers", []))
-            
+
             # Create processed match
             processed_match = {
                 "id": match.get("id"),
