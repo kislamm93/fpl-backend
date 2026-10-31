@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 
 import requests
 
@@ -65,7 +65,24 @@ class FPLService:
             current_event = next((e for e in events if e.get("is_next")), None)
         
         return current_event or {}
-    
+
+    @classmethod
+    def get_upcoming_event(cls) -> Dict[str, Any]:
+        """
+        Get the gameweek to pick for — the first one that isn't finished.
+
+        Distinct from get_current_event(): FPL keeps is_current on a gameweek
+        until the next one kicks off, so once GW8's last match ends is_current
+        is still GW8 even though GW9 is the one being picked for. Callers
+        showing results want current; callers showing what's next want this.
+
+        Returns:
+            Dict: Upcoming gameweek data
+        """
+        events = cls.get_bootstrap_static().get("events", [])
+        upcoming = next((e for e in events if not e.get("finished")), None)
+        return upcoming or (events[-1] if events else {})
+
     @classmethod
     def get_events(cls) -> List[Dict[str, Any]]:
         """
@@ -229,7 +246,13 @@ class FPLService:
         
         if response.status_code != 200:
             logger.error(f"Failed to get manager picks. Status: {response.status_code}")
-            raise Exception(f"Failed to get picks for manager {manager_id} in gameweek {event_id}")
+            # Status goes in the message because the route maps it back to an
+            # HTTP code by string match. Without it, a gameweek whose deadline
+            # hasn't passed yet (FPL 404s those) surfaced as a 500.
+            raise Exception(
+                f"Failed to get picks for manager {manager_id} in gameweek {event_id} "
+                f"(HTTP {response.status_code})"
+            )
             
         return response.json()
     

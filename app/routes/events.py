@@ -1,7 +1,6 @@
-from fastapi import APIRouter, HTTPException, Path, Query
+from fastapi import APIRouter, HTTPException, Path
 from app.services.fpl_service import FPLService
 import logging
-from datetime import datetime
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -30,6 +29,26 @@ async def get_events():
     """
     try:
         return FPLService.get_events()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Registered before /{event_id} on purpose: that route parses the path segment
+# as an int, so "upcoming" would 422 there if it matched first.
+@router.get(
+    "/upcoming",
+    summary="Get the upcoming gameweek",
+    description="The gameweek being picked for — the first one that isn't finished",
+    response_description="Details of the upcoming gameweek"
+)
+async def get_upcoming_event():
+    """
+    Get the gameweek to pick for.
+
+    Returns:
+        Dict: Upcoming gameweek details
+    """
+    try:
+        return FPLService.get_upcoming_event()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
