@@ -1,0 +1,7 @@
+{
+  "_comment": "Odds-API player name -> FPL web_name. Only needed where resolve_player() can't match on its own. After a refresh, read GET /odds/markets -> unmatched_players and add real players here; names the books price but FPL doesn't carry belong in _not_in_fpl so nobody re-investigates them.",
+  "Kaine Kesler": "Kesler-Hayden",
+  "Bruno Guimarães": "Bruno G.",
+  "Yeremi Pino": "Yeremy",
+  "_not_in_fpl": "Alan Browne, Andre Harriman-Annous, Ben Gannondoak, Luke Chambers, Ferdi Kadioglu, Modou Cisse, Reggie Walsh, Shane Nti"
+}

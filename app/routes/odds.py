@@ -1,5 +1,5 @@
 from datetime import datetime
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from app.services.odds_api_service import (
     get_upcoming_matches,
     get_event_btts_odds,
@@ -10,6 +10,8 @@ from app.services.odds_api_service import (
     calculate_clean_sheet_probabilities
 )
 from app.services.fpl_service import FPLService
+from app.services import odds_markets
+from app.security import require_admin
 import logging
 
 # Configure logging
@@ -178,3 +180,44 @@ async def get_event_clean_sheets_odds(betting_event_id: str):
         if "404" in str(e):
             raise HTTPException(status_code=404, detail=f"Event with ID {betting_event_id} not found")
         raise HTTPException(status_code=500, detail=str(e)) 
+
+@router.get(
+    "/markets",
+    summary="All betting markets for the upcoming gameweek",
+    description=(
+        "Cached snapshot: match odds, goals markets, clean-sheet probabilities and "
+        "anytime-goalscorer odds joined to FPL players. Free to call — it never hits "
+        "the Odds API. Empty until POST /odds/refresh has been run."
+    ),
+)
+async def get_markets():
+    """
+    Get the cached betting-markets snapshot.
+
+    Returns:
+        Dict: matches, goalscorers, last_updated, gameweek, unmatched_players
+    """
+    return odds_markets.get_snapshot()
+
+
+@router.post(
+    "/refresh",
+    summary="Refresh the betting-markets snapshot (admin)",
+    description=(
+        "Spends Odds API credits (~33 for a full gameweek), so it needs the "
+        "X-Admin-Key header. Everything else reads the snapshot for free."
+    ),
+    dependencies=[Depends(require_admin)],
+)
+async def refresh_markets():
+    """
+    Re-pull every market for the upcoming gameweek.
+
+    Returns:
+        Dict: the new snapshot, including credits spent
+    """
+    try:
+        return odds_markets.refresh()
+    except Exception as e:
+        logging.error(f"Odds refresh failed: {e}", exc_info=True)
+        raise HTTPException(status_code=502, detail=str(e))
