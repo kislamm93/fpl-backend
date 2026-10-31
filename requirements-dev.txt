@@ -1,0 +1,7 @@
+# CI-only tooling. Not installed on Render — render.yaml's buildCommand reads
+# requirements.txt alone, so nothing here reaches the running service.
+#
+# Pinned on purpose: ruff's default and per-rule behaviour shifts between
+# releases, and an unpinned linter means CI can fail on a commit that changed
+# nothing. See ruff.toml for why the rule set is narrow.
+ruff==0.17.3

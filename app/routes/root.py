@@ -1,3 +1,5 @@
+import os
+
 from fastapi import APIRouter, HTTPException
 from app.services.fpl_service import FPLService
 
@@ -52,3 +54,22 @@ async def health_check():
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) 
+
+@router.get(
+    "/version",
+    summary="Which commit is actually serving",
+    description=(
+        "The git SHA of the running build, from Render's RENDER_GIT_COMMIT. "
+        "Unknown outside Render (local runs report \"dev\")."
+    ),
+)
+async def version():
+    """What revision is live.
+
+    Needed because /health answers 200 from the OLD revision for the whole
+    duration of a Render build, which makes it useless as a deploy check — a
+    post-deploy smoke that polls /health passes before the new code exists.
+    Polling this until it matches the pushed SHA is what actually proves the
+    deploy landed.
+    """
+    return {"commit": os.getenv("RENDER_GIT_COMMIT", "dev")}

@@ -5,7 +5,6 @@ Run this after removing models.py to ensure all endpoints are working.
 """
 
 import requests
-import sys
 import json
 from typing import Dict, Any
 

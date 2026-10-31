@@ -1,0 +1,20 @@
+# A deliberately narrow lint gate.
+#
+# ruff's default rule set widens between releases — 0.17 reports 207 findings on
+# this app, nearly all of them style preferences (PEP 585 annotations, blind
+# excepts, root-logger calls). A gate that has to be switched off on its first
+# run isn't a gate, so the rules are listed explicitly here and the ruff version
+# is pinned in requirements-dev.txt. Otherwise a routine upgrade turns a green
+# build red without a line of app code changing.
+#
+# What's selected is the "this code is actually broken" tier: syntax errors
+# (E9), bad comparisons and f-string mistakes (F63, F7), undefined names (F82) —
+# plus unused imports (F401), which are the usual residue of a half-finished
+# edit and the cheapest signal that something was left behind.
+#
+# Widening this is a deliberate cleanup, not a side effect. `ruff check
+# --statistics app` shows what the broader rules would say.
+target-version = "py311"
+
+[lint]
+select = ["E9", "F63", "F7", "F82", "F401"]

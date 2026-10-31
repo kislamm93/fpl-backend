@@ -1,5 +1,13 @@
+# Exact pins: Render reinstalls from this file on every build, so anything left
+# loose means two builds of the same commit can ship different code. pydantic in
+# particular was transitive and unpinned (fastapi 0.103 allows anything under
+# 3.0), which put a major-version jump one rebuild away.
 fastapi==0.103.2
 uvicorn==0.23.2
 requests==2.31.0
 python-dotenv==1.0.0
 httpx==0.27.2
+
+# Transitive, pinned so a rebuild can't resolve differently.
+pydantic==2.13.4
+starlette==0.27.0

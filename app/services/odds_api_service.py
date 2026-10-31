@@ -1,7 +1,6 @@
 import requests
 import logging
 from typing import List, Dict, Any, Tuple
-from statistics import mean
 import os
 from dotenv import load_dotenv
 

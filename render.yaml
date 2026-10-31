@@ -1,13 +1,44 @@
+# Blueprint for the backend. Render deploys every push to main itself
+# (autoDeploy, its default) — .github/workflows/ci.yml doesn't trigger the
+# deploy, it checks the commit and then verifies the result.
+#
+# The trade-off that buys: Render has no way to gate its own auto-deploy on a
+# GitHub check, so a commit that doesn't import still reaches production and
+# the workflow reports it after the fact rather than preventing it. Recovery is
+# a one-click rollback in the Render dashboard. To switch to prevention
+# instead, set autoDeploy: false here and have the workflow POST to the Render
+# API — one account-level key, nothing else changes.
 services:
   - type: web
     name: fpl-backend
     runtime: python
     plan: free
+    autoDeploy: true
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.7
+
+      # --- secrets: set these in the Render dashboard, never in this file ---
+
+      # The Odds API key. Without it /odds/* returns empty snapshots.
       - key: ODDS_API_KEY
-        sync: false   # paste your The Odds API key in the Render dashboard
+        sync: false
+
+      # Gates POST /odds/refresh, which spends Odds API credits. require_admin
+      # fails closed: with this unset the route returns 503 for everyone,
+      # including you. Any long random string works — you paste it into the
+      # browser once and it stays in localStorage.
+      - key: ADMIN_KEY
+        sync: false
+
+      # --- agent wiring: declared here so the dependency is visible in the
+      # repo rather than only in the dashboard. Both have working defaults in
+      # app/services/agent_service.py, so they're optional overrides. ---
+
+      - key: AGENT_PROVIDER
+        value: gcp
+      - key: GCP_AGENT_URL
+        value: https://fpl-agent-44q5brj2va-uc.a.run.app

@@ -1,0 +1,113 @@
+name: CI and verify deploy
+
+# Render deploys every push to main on its own, which is the behaviour we
+# want. What it can't do is tell you whether the commit was any good, or
+# whether the deploy actually landed — its dashboard goes green when the build
+# succeeds, not when the new code is serving.
+#
+# So this workflow does the two things Render doesn't: `ci` checks the commit,
+# and `verify` waits for the pushed SHA to actually be live and then smokes the
+# endpoints the agent and UI depend on. Needs no secrets.
+#
+# The two jobs are independent on purpose. Render deploys regardless of CI, so
+# if `ci` fails you still want to know what state production ended up in — a
+# `needs: ci` here would skip the verify and leave you guessing.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch: {}
+
+env:
+  BACKEND_URL: https://fpl-backend-xio6.onrender.com
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          # Same version render.yaml pins, so CI and production agree.
+          python-version: "3.11.7"
+          cache: pip
+
+      # Install exactly what Render installs, from the same pinned file. This is
+      # what catches dependency drift: a local venv here was still on httpx
+      # 0.24 while requirements.txt pinned 0.27, so "works on my machine" and
+      # "works on Render" were testing different code.
+      - name: Install
+        run: pip install -r requirements.txt -r requirements-dev.txt
+
+      # Narrow by design — see ruff.toml for which rules and why.
+      - name: Lint
+        run: ruff check app
+
+      - name: Boot the app and check routing
+        # Builds the real app object, so a bad import, a duplicate route or a
+        # shadowed path fails here instead of on Render. Deliberately offline:
+        # /health calls the live FPL API, which belongs in the post-deploy
+        # smoke, not in a gate that should fail only when this repo is wrong.
+        run: |
+          python - <<'PY'
+          from app.main import app
+
+          paths = [r.path for r in app.routes]
+
+          for p in ("/health", "/version", "/odds/markets", "/odds/refresh"):
+              assert p in paths, f"route missing: {p}"
+
+          # /events/upcoming must be registered BEFORE /events/{event_id}:
+          # the latter parses its segment as an int, so if it matches first the
+          # literal "upcoming" 422s. The agent calls this on every question, so
+          # getting the order wrong breaks every answer.
+          i_up, i_id = paths.index("/events/upcoming"), paths.index("/events/{event_id}")
+          assert i_up < i_id, "/events/upcoming is shadowed by /events/{event_id}"
+
+          print(f"{len(paths)} routes registered, ordering OK")
+          PY
+
+  verify:
+    # Only on a real push to main — a PR deploys nothing, so there is nothing
+    # to verify.
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for the pushed commit to be live
+        # Polls /version, not /health. /health answers 200 from the OLD
+        # revision for the entire build, so a health poll goes green before the
+        # new code exists — it would pass even if the deploy never happened.
+        # /version reports Render's RENDER_GIT_COMMIT, so a match is proof the
+        # pushed commit is the one serving traffic.
+        #
+        # Free-tier builds take a few minutes and a cold start adds more, hence
+        # the patient timeout.
+        run: |
+          for i in $(seq 1 60); do
+            live=$(curl -fsS --max-time 20 "$BACKEND_URL/version" 2>/dev/null \
+                   | python3 -c 'import json,sys; print(json.load(sys.stdin).get("commit",""))' 2>/dev/null || true)
+            if [ "$live" = "${{ github.sha }}" ]; then
+              echo "live on ${GITHUB_SHA:0:7} after ~$((i * 10))s"
+              exit 0
+            fi
+            echo "  waiting... live=${live:-unreachable} want=${GITHUB_SHA:0:7}"
+            sleep 10
+          done
+          echo "::error::$BACKEND_URL did not report ${GITHUB_SHA:0:7} within 10 minutes."
+          echo "::error::Check the Render dashboard — the build may have failed, in"
+          echo "::error::which case the previous revision is still serving."
+          exit 1
+
+      - name: Smoke the endpoints the agent and UI depend on
+        # /events/upcoming and /odds/markets are what the Cloud Run agent calls
+        # on nearly every question, and what the Market Odds tabs read. A 500
+        # here means the chat is broken even though the deploy "succeeded".
+        run: |
+          set -e
+          for path in /health /events/upcoming /odds/markets; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$BACKEND_URL$path")
+            echo "$path -> $code"
+            [ "$code" = "200" ] || { echo "::error::$path returned $code"; exit 1; }
+          done

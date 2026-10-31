@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Path, Query
+from fastapi import APIRouter, HTTPException, Path
 from app.services.fpl_service import FPLService
 
 router = APIRouter(
