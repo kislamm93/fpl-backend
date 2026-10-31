@@ -28,18 +28,29 @@ class ChatRequest(BaseModel):
     # persisted anonymous uuid) and a per-conversation session_id.
     user_id: str
     session_id: str
+    # What the user is looking at ("Market Odds / Goalscorers tab, GW9"), so
+    # "who's the best differential here?" resolves without them spelling it out.
+    context: str | None = None
 
 
 @router.post(
     "/chat/stream",
     summary="Stream a captaincy chat reply (SSE)",
-    description="Server-Sent Events; each message is `data: {\"delta\": \"...\"}`, ending with `data: {\"done\": true}`.",
+    description=(
+        "Server-Sent Events. Progress first — `data: {\"tool\": \"goalscorer_odds\", "
+        "\"label\": \"reading goalscorer odds\"}` per tool — then one "
+        "`data: {\"reply\": \"...\", \"tools\": [...], \"warning\": null}`, then "
+        "`data: {\"done\": true}`. The reply is buffered and name-checked before it is "
+        "sent, so no unverified player name ever reaches the client."
+    ),
 )
 async def chat_stream(req: ChatRequest):
     async def event_gen():
         try:
-            async for delta in agent_service.stream_reply(req.user_id, req.session_id, req.message):
-                yield f"data: {json.dumps({'delta': delta})}\n\n"
+            async for event in agent_service.run(
+                req.user_id, req.session_id, req.message, req.context
+            ):
+                yield f"data: {json.dumps(event)}\n\n"
         except Exception as exc:  # surface upstream failures to the client stream
             logging.error(f"Agent stream error: {exc}", exc_info=True)
             yield f"data: {json.dumps({'error': str(exc)})}\n\n"
@@ -59,7 +70,9 @@ async def chat_stream(req: ChatRequest):
 )
 async def chat(req: ChatRequest):
     try:
-        reply = await agent_service.get_reply(req.user_id, req.session_id, req.message)
+        reply = await agent_service.get_reply(
+            req.user_id, req.session_id, req.message, req.context
+        )
         return {"reply": reply}
     except Exception as exc:
         logging.error(f"Agent chat error: {exc}", exc_info=True)
